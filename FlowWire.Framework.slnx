@@ -15,6 +15,7 @@
     <Project Path="framework/FlowWire.Framework.Worker/FlowWire.Framework.Worker.csproj" Id="89bd6785-035a-4444-a476-f997e996a8b6" />
   </Folder>
   <Folder Name="/Solution Config/">
+    <File Path=".editorconfig" />
     <File Path="common.props" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
