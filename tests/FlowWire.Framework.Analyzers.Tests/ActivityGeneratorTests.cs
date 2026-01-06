@@ -8,18 +8,18 @@ public class ActivityGeneratorTests
     public void Generate_BasicActivity_CreatesClient()
     {
         var source = @"
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace TestNamespace
-{
-    [Activity]
-    public interface IMyService
-    {
-        Task DoWork(string input);
-        Task<int> Calculate(int a, int b);
-    }
-}";
+            namespace TestNamespace
+            {
+                [Activity]
+                public interface IMyService
+                {
+                    Task DoWork(string input);
+                    Task<int> Calculate(int a, int b);
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
@@ -38,19 +38,19 @@ namespace TestNamespace
     public void Generate_WithInjectAttribute_ExcludesFromClientAndPayload()
     {
         var source = @"
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace TestNamespace
-{
-    public class InjectAttribute : System.Attribute {}
+            namespace TestNamespace
+            {
+                public class InjectAttribute : System.Attribute {}
 
-    [Activity]
-    public interface IInjectedService
-    {
-        Task Process([Inject] string service, int data);
-    }
-}";
+                [Activity]
+                public interface IInjectedService
+                {
+                    Task Process([Inject] string service, int data);
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
@@ -68,19 +68,19 @@ namespace TestNamespace
     public void Generate_WithMultipleInjects_ExcludesAll()
     {
         var source = @"
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace TestNamespace
-{
-    public class InjectAttribute : System.Attribute {}
+            namespace TestNamespace
+            {
+                public class InjectAttribute : System.Attribute {}
 
-    [Activity]
-    public interface IMultiInject
-    {
-        Task Complex([Inject] string s1, int a, [Inject] object s2, string b);
-    }
-}";
+                [Activity]
+                public interface IMultiInject
+                {
+                    Task Complex([Inject] string s1, int a, [Inject] object s2, string b);
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
@@ -95,19 +95,19 @@ namespace TestNamespace
     public void Generate_HandlesGenericParameters()
     {
         var source = @"
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace TestNamespace
-{
-    [Activity]
-    public interface IGenericService
-    {
-        Task ProcessList(List<string> items);
-        Task<Dictionary<string, int>> ProcessMap(Dictionary<string, int> map);
-    }
-}";
+            namespace TestNamespace
+            {
+                [Activity]
+                public interface IGenericService
+                {
+                    Task ProcessList(List<string> items);
+                    Task<Dictionary<string, int>> ProcessMap(Dictionary<string, int> map);
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
@@ -123,17 +123,17 @@ namespace TestNamespace
     public void Generate_PreservesNamespace()
     {
         var source = @"
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace My.Complex.Namespace
-{
-    [Activity]
-    public interface INamespacedService
-    {
-        Task Do();
-    }
-}";
+            namespace My.Complex.Namespace
+            {
+                [Activity]
+                public interface INamespacedService
+                {
+                    Task Do();
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
@@ -147,21 +147,21 @@ namespace My.Complex.Namespace
     public void Generate_IgnoresOtherAttributes()
     {
         var source = @"
-using System;
-using System.Threading.Tasks;
-using FlowWire.Framework.Abstractions;
+            using System;
+            using System.Threading.Tasks;
+            using FlowWire.Framework.Abstractions;
 
-namespace TestNamespace
-{
-    [AttributeUsage(AttributeTargets.Parameter)]
-    public class ValidationAttribute : Attribute {}
+            namespace TestNamespace
+            {
+                [AttributeUsage(AttributeTargets.Parameter)]
+                public class ValidationAttribute : Attribute {}
 
-    [Activity]
-    public interface IValidationService
-    {
-        Task Validate([Validation] string input);
-    }
-}";
+                [Activity]
+                public interface IValidationService
+                {
+                    Task Validate([Validation] string input);
+                }
+            }";
         var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new ActivityGenerator(), source);
 
         Assert.Empty(diagnostics);
