@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\common.props" />
+
   <PropertyGroup>
     <AssemblyName>FlowWire.Framework.Analyzers</AssemblyName>
     <PackageId>FlowWire.Framework.Analyzers</PackageId>
