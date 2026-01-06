@@ -20,5 +20,7 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/FlowWire.Framework.Analyzers.Tests/FlowWire.Framework.Analyzers.Tests.csproj" Id="e3216af9-54a6-475a-84d2-b449188784ce" />
+  </Folder>
 </Solution>
