@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>FlowWire.Framework.Abstractions</AssemblyName>
+    <PackageId>FlowWire.Framework.Abstractions</PackageId>
+  </PropertyGroup>
+
+</Project>

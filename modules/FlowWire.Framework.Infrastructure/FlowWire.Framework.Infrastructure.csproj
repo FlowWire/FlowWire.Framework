@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>FlowWire.Framework.Infrastructure</AssemblyName>
+    <PackageId>FlowWire.Framework.Infrastructure</PackageId>
+  </PropertyGroup>
+
+</Project>

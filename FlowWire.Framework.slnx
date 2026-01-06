@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/aspire/">
+    <Project Path="modules/FlowWire.Framework.AppHost/FlowWire.Framework.AppHost.csproj" />
+    <Project Path="modules/FlowWire.Framework.ServiceDefaults/FlowWire.Framework.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/examples/" />
+  <Folder Name="/modules/">
+    <Project Path="modules/FlowWire.Framework.Abstractions/FlowWire.Framework.Abstractions.csproj" Id="ca069fc5-de9f-42e3-9632-d934dda1ca18" />
+    <Project Path="modules/FlowWire.Framework.Analyzers/FlowWire.Framework.Analyzers.csproj" Id="8407586a-3f50-4a37-bc02-87f55591fa82" />
+    <Project Path="modules/FlowWire.Framework.Aspire/FlowWire.Framework.Aspire.csproj" Id="d226b131-11de-442a-b9ed-c5a9b611fbf7" />
+    <Project Path="modules/FlowWire.Framework.Core/FlowWire.Framework.Core.csproj" />
+    <Project Path="modules/FlowWire.Framework.Infrastructure/FlowWire.Framework.Infrastructure.csproj" Id="5709392c-d1f9-43e6-9d40-1ddd31628132" />
+    <Project Path="modules/FlowWire.Framework.Orchestrator/FlowWire.Framework.Orchestrator.csproj" Id="02bb0b1d-3c32-4308-b9cb-e6f2721e5562" />
+    <Project Path="modules/FlowWire.Framework.Testing/FlowWire.Framework.Testing.csproj" Id="a641c370-079a-4536-886d-67b87b89030f" />
+    <Project Path="modules/FlowWire.Framework.Worker/FlowWire.Framework.Worker.csproj" Id="89bd6785-035a-4444-a476-f997e996a8b6" />
+  </Folder>
+  <Folder Name="/Solution Config/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>

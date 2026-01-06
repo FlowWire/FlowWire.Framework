@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>FlowWire.Framework.Analyzers</AssemblyName>
+    <PackageId>FlowWire.Framework.Analyzers</PackageId>
+  </PropertyGroup>
+
+</Project>
