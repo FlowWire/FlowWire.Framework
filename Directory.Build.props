@@ -13,4 +13,8 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <OptimizationPreference>Speed</OptimizationPreference>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <IsTestProject Condition="$(MSBuildProjectFullPath.Contains('test')) and ($(MSBuildProjectName.EndsWith('.Tests')) or $(MSBuildProjectName.EndsWith('.TestBase')))">true</IsTestProject>
+  </PropertyGroup>
 </Project>
