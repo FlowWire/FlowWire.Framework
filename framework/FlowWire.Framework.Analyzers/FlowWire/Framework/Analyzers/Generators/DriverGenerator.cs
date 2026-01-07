@@ -93,8 +93,16 @@ public class DriverGenerator : IIncrementalGenerator
         sb.AppendLine("using FlowWire.Framework.Abstractions;");
         sb.AppendLine($"namespace {model.Namespace};");
         sb.AppendLine();
-        sb.AppendLine($"public class {model.InterfaceName}_Client");
+        sb.AppendLine($"public class {model.InterfaceName}_Driver");
         sb.AppendLine("{");
+        
+        sb.AppendLine("    private readonly DriverProxy _proxy;");
+        sb.AppendLine();
+        sb.AppendLine($"    public {model.InterfaceName}_Driver(DriverProxy proxy)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        _proxy = proxy;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
 
         foreach (var method in model.Methods)
         {
@@ -115,18 +123,25 @@ public class DriverGenerator : IIncrementalGenerator
             sb.AppendLine($"    public {method.ReturnType} {method.Name}({args})");
             sb.AppendLine("    {");
 
-            // Note: We use the Interface Name + Method Name to ensure uniqueness across services
-            var activityId = $"{model.InterfaceName}.{method.Name}";
-
-            sb.Append("        return Command.Run");
+            sb.Append("        return _proxy.Drive");
             
             // Optimization: Use generic Run to avoid boxing the return type wrapper and enable inference
             if (method.InnerReturnType != null)
             {
-                sb.Append($"<{method.InnerReturnType}>");
+                sb.Append($"<{method.InnerReturnType}");
+                
+                // If the parameter count is <= 8, we can use the generic overload which includes argument types
+                if (method.Parameters.Count() <= 8)
+                {
+                    foreach (var p in method.Parameters)
+                    {
+                        sb.Append($", {p.Type}");
+                    }
+                }
+                sb.Append(">");
             }
             
-            sb.AppendLine($"(\"{activityId}\"{passThroughArgs});");
+            sb.AppendLine($"(\"{method.Name}\"{passThroughArgs});");
 
             sb.AppendLine("    }");
             sb.AppendLine();
@@ -134,7 +149,7 @@ public class DriverGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
 
-        context.AddSource($"{model.InterfaceName}_Client.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        context.AddSource($"{model.InterfaceName}_Driver.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 }
 
