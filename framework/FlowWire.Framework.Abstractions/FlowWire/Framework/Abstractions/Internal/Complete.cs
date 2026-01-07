@@ -3,4 +3,4 @@
 namespace FlowWire.Framework.Abstractions.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public record Complete(object? Output) : WorkflowCommand;
+public record Complete(object? Output) : FlowCommand;

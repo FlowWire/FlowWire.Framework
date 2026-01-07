@@ -3,4 +3,4 @@
 namespace FlowWire.Framework.Abstractions.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public record WaitTimer(TimeSpan Duration) : WorkflowCommand;
+public record WaitTimer(TimeSpan Duration) : FlowCommand;

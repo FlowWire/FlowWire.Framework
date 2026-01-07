@@ -3,4 +3,4 @@
 namespace FlowWire.Framework.Abstractions.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public record WaitForSignal(string Name, TimeSpan? Timeout) : WorkflowCommand;
+public record WaitForSignal(string Name, TimeSpan? Timeout) : FlowCommand;
