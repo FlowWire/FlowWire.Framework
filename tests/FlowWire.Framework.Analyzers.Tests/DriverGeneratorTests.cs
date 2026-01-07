@@ -1,12 +1,11 @@
 using FlowWire.Framework.Analyzers.Generators;
-using Xunit;
 
 namespace FlowWire.Framework.Analyzers.Tests;
 
 public class DriverGeneratorTests
 {
     [Fact]
-    public void Generate_BasicOp_CreatesClient()
+    public void Generate_BasicDriver_CreatesClient()
     {
         var source = @"
             using System.Threading.Tasks;
