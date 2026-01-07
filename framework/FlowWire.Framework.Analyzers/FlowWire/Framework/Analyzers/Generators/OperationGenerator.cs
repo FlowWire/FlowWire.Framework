@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace FlowWire.Framework.Analyzers.Generators;
 
 [Generator]
-public class ActivityGenerator : IIncrementalGenerator
+public class OperationGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -31,7 +31,7 @@ public class ActivityGenerator : IIncrementalGenerator
         var interfaceDecl = (InterfaceDeclarationSyntax)context.Node;
         var symbol = context.SemanticModel.GetDeclaredSymbol(interfaceDecl);
 
-        if (symbol is null || !IsActivity(symbol))
+        if (symbol is null || !IsOperation(symbol))
         {
             return null;
         }
@@ -50,10 +50,10 @@ public class ActivityGenerator : IIncrementalGenerator
         );
     }
 
-    private static bool IsActivity(INamedTypeSymbol symbol)
+    private static bool IsOperation(INamedTypeSymbol symbol)
     {
         return symbol.GetAttributes().Any(static a =>
-            a.AttributeClass?.ToDisplayString() == "FlowWire.Framework.Abstractions.ActivityAttribute");
+            a.AttributeClass?.ToDisplayString() == "FlowWire.Framework.Abstractions.OpAttribute");
     }
 
     private static ActivityMethodModel GetMethodModel(IMethodSymbol method)
@@ -64,18 +64,18 @@ public class ActivityGenerator : IIncrementalGenerator
             parameters.Add(new ActivityParameterModel(
                 p.Name,
                 p.Type.ToDisplayString(),
-                IsInject(p)
+                false // Removed IsInject check
             ));
         }
 
-        var returnType = "WorkflowCommand";
+        var returnType = "FlowCommand";
         string? innerReturnType = null;
 
         if (method.ReturnType is INamedTypeSymbol taskType && taskType.IsGenericType)
         {
             // Task<T> -> extract T
             innerReturnType = taskType.TypeArguments[0].ToDisplayString();
-            returnType = $"ActivityCommand<{innerReturnType}>";
+            returnType = $"OperationCommand<{innerReturnType}>";
         }
 
         return new ActivityMethodModel(
@@ -84,13 +84,6 @@ public class ActivityGenerator : IIncrementalGenerator
             innerReturnType,
             new EquatableArray<ActivityParameterModel>(parameters.ToImmutable())
         );
-    }
-
-    private static bool IsInject(IParameterSymbol parameter)
-    {
-        return parameter.GetAttributes().Any(static a =>
-            a.AttributeClass?.Name == "InjectAttribute" ||
-            a.AttributeClass?.Name == "Inject");
     }
 
     private static void Execute(SourceProductionContext context, ActivityInterfaceModel model)
@@ -106,13 +99,11 @@ public class ActivityGenerator : IIncrementalGenerator
         foreach (var method in model.Methods)
         {
             var clientParams = method.Parameters
-                .Where(p => !p.IsInjected)
                 .Select(p => $"{p.Type} {p.Name}");
 
             var args = string.Join(", ", clientParams);
 
             var passThroughParams = method.Parameters
-                .Where(p => !p.IsInjected)
                 .Select(p => p.Name);
 
             var passThroughArgs = string.Join(", ", passThroughParams);
