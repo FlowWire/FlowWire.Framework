@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
+using System.Linq.Expressions;
 
 namespace FlowWire.Framework.Abstractions.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public record ScheduleOperation(string Name, object[] Input) : FlowCommand;
+public record ScheduleDriveFromExpression(Expression Expression) : FlowCommand;

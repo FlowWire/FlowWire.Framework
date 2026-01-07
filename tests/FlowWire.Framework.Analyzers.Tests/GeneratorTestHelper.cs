@@ -17,7 +17,7 @@ public static class GeneratorTestHelper
         var references = new List<MetadataReference>
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(OpAttribute).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(DriverAttribute).Assembly.Location)
         };
         
         // Add all assemblies loaded in the current app domain
@@ -74,7 +74,7 @@ public static class GeneratorTestHelper
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(OpAttribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(DriverAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location),
             MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location)
         };

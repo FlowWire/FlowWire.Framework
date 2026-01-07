@@ -3,7 +3,7 @@ using Xunit;
 
 namespace FlowWire.Framework.Analyzers.Tests;
 
-public class OperationGeneratorTests
+public class DriverGeneratorTests
 {
     [Fact]
     public void Generate_BasicOp_CreatesClient()
@@ -14,14 +14,14 @@ public class OperationGeneratorTests
 
             namespace TestNamespace
             {
-                [Op]
+                [Driver]
                 public interface IMyService
                 {
                     Task DoWork(string input);
                     Task<int> Calculate(int a, int b);
                 }
             }";
-        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new OperationGenerator(), source);
+        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new DriverGenerator(), source);
 
         Assert.Empty(diagnostics);
         Assert.Single(generated);
@@ -31,7 +31,7 @@ public class OperationGeneratorTests
         Assert.Contains("public FlowCommand DoWork(string input)", generatedCode);
         Assert.Contains("return Command.Run(\"IMyService.DoWork\", input);", generatedCode);
 
-        Assert.Contains("public OperationCommand<int> Calculate(int a, int b)", generatedCode);
+        Assert.Contains("public DriverCommand<int> Calculate(int a, int b)", generatedCode);
         Assert.Contains("return Command.Run<int>(\"IMyService.Calculate\", a, b);", generatedCode);
     }
 
@@ -45,21 +45,21 @@ public class OperationGeneratorTests
 
             namespace TestNamespace
             {
-                [Op]
+                [Driver]
                 public interface IGenericService
                 {
                     Task ProcessList(List<string> items);
                     Task<Dictionary<string, int>> ProcessMap(Dictionary<string, int> map);
                 }
             }";
-        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new OperationGenerator(), source);
+        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new DriverGenerator(), source);
 
         Assert.Empty(diagnostics);
         var generatedCode = generated[0];
 
         // Roslyn ToDisplayString defaults to full type names, so we expect System.Collections.Generic.List<string>
         Assert.Contains("public FlowCommand ProcessList(System.Collections.Generic.List<string> items)", generatedCode);
-        Assert.Contains("public OperationCommand<System.Collections.Generic.Dictionary<string, int>> ProcessMap(System.Collections.Generic.Dictionary<string, int> map)", generatedCode);
+        Assert.Contains("public DriverCommand<System.Collections.Generic.Dictionary<string, int>> ProcessMap(System.Collections.Generic.Dictionary<string, int> map)", generatedCode);
         Assert.Contains("Command.Run<System.Collections.Generic.Dictionary<string, int>>(\"IGenericService.ProcessMap\", map)", generatedCode);
     }
 
@@ -72,13 +72,13 @@ public class OperationGeneratorTests
 
             namespace My.Complex.Namespace
             {
-                [Op]
+                [Driver]
                 public interface INamespacedService
                 {
                     Task Do();
                 }
             }";
-        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new OperationGenerator(), source);
+        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new DriverGenerator(), source);
 
         Assert.Empty(diagnostics);
         var generatedCode = generated[0];
@@ -100,13 +100,13 @@ public class OperationGeneratorTests
                 [AttributeUsage(AttributeTargets.Parameter)]
                 public class ValidationAttribute : Attribute {}
 
-                [Op]
+                [Driver]
                 public interface IValidationService
                 {
                     Task Validate([Validation] string input);
                 }
             }";
-        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new OperationGenerator(), source);
+        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new DriverGenerator(), source);
 
         Assert.Empty(diagnostics);
         var generatedCode = generated[0];

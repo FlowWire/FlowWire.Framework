@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace FlowWire.Framework.Analyzers.Generators;
 
 [Generator]
-public class OperationGenerator : IIncrementalGenerator
+public class DriverGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -31,7 +31,7 @@ public class OperationGenerator : IIncrementalGenerator
         var interfaceDecl = (InterfaceDeclarationSyntax)context.Node;
         var symbol = context.SemanticModel.GetDeclaredSymbol(interfaceDecl);
 
-        if (symbol is null || !IsOperation(symbol))
+        if (symbol is null || !IsDriver(symbol))
         {
             return null;
         }
@@ -50,10 +50,10 @@ public class OperationGenerator : IIncrementalGenerator
         );
     }
 
-    private static bool IsOperation(INamedTypeSymbol symbol)
+    private static bool IsDriver(INamedTypeSymbol symbol)
     {
         return symbol.GetAttributes().Any(static a =>
-            a.AttributeClass?.ToDisplayString() == "FlowWire.Framework.Abstractions.OpAttribute");
+            a.AttributeClass?.ToDisplayString() == "FlowWire.Framework.Abstractions.DriverAttribute");
     }
 
     private static ActivityMethodModel GetMethodModel(IMethodSymbol method)
@@ -75,7 +75,7 @@ public class OperationGenerator : IIncrementalGenerator
         {
             // Task<T> -> extract T
             innerReturnType = taskType.TypeArguments[0].ToDisplayString();
-            returnType = $"OperationCommand<{innerReturnType}>";
+            returnType = $"DriverCommand<{innerReturnType}>";
         }
 
         return new ActivityMethodModel(
