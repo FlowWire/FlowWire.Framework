@@ -22,5 +22,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/FlowWire.Framework.Analyzers.Tests/FlowWire.Framework.Analyzers.Tests.csproj" Id="e3216af9-54a6-475a-84d2-b449188784ce" />
+    <Project Path="tests/FlowWire.Framework.Core.Tests/FlowWire.Framework.Core.Tests.csproj" Id="5aaac60f-4130-4d58-b35c-f2982214d663" />
   </Folder>
 </Solution>

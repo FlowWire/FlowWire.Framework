@@ -7,4 +7,12 @@
     <PackageId>FlowWire.Framework.Core</PackageId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowWire.Framework.Abstractions\FlowWire.Framework.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>
