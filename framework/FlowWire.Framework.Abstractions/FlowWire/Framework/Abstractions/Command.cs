@@ -10,114 +10,114 @@ public static class Command
     // The "Magic String" fallback
     public static WorkflowCommand Run(string activityName, params object[] args)
     {
-        return new Internal.ScheduleActivity(activityName, args);
+        return new Internal.ScheduleOperation(activityName, args);
     }
 
     public static WorkflowCommand Run(string activityName)
     {
-        return new Internal.ScheduleActivity(activityName, []);
+        return new Internal.ScheduleOperation(activityName, []);
     }
 
     public static WorkflowCommand Run<T>(string activityName, T arg)
     {
-        return new Internal.ScheduleActivity(activityName, [arg!]);
+        return new Internal.ScheduleOperation(activityName, [arg!]);
     }
 
     public static WorkflowCommand Run<T1, T2>(string activityName, T1 arg1, T2 arg2)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3>(string activityName, T1 arg1, T2 arg2, T3 arg3)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4, T5>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4, T5, T6>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4, T5, T6, T7>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4, T5, T6, T7, T8>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!]);
     }
 
     public static WorkflowCommand Run<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
     {
-        return new Internal.ScheduleActivity(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!, arg9!]);
+        return new Internal.ScheduleOperation(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!, arg9!]);
     }
 
     // Typed Return Overloads
 
-    public static ActivityCommand<TResult> Run<TResult>(string activityName, params object[] args)
+    public static OperationCommand<TResult> Run<TResult>(string activityName, params object[] args)
     {
-        return new ActivityCommand<TResult>(activityName, args);
+        return new OperationCommand<TResult>(activityName, args);
     }
 
-    public static ActivityCommand<TResult> Run<TResult>(string activityName)
+    public static OperationCommand<TResult> Run<TResult>(string activityName)
     {
-        return new ActivityCommand<TResult>(activityName, []);
+        return new OperationCommand<TResult>(activityName, []);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1>(string activityName, T1 arg1)
+    public static OperationCommand<TResult> Run<TResult, T1>(string activityName, T1 arg1)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!]);
+        return new OperationCommand<TResult>(activityName, [arg1!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2>(string activityName, T1 arg1, T2 arg2)
+    public static OperationCommand<TResult> Run<TResult, T1, T2>(string activityName, T1 arg1, T2 arg2)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3>(string activityName, T1 arg1, T2 arg2, T3 arg3)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3>(string activityName, T1 arg1, T2 arg2, T3 arg3)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4, T5>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4, T5>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7, T8>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7, T8>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!]);
     }
 
-    public static ActivityCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7, T8, T9>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
+    public static OperationCommand<TResult> Run<TResult, T1, T2, T3, T4, T5, T6, T7, T8, T9>(string activityName, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
     {
-        return new ActivityCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!, arg9!]);
+        return new OperationCommand<TResult>(activityName, [arg1!, arg2!, arg3!, arg4!, arg5!, arg6!, arg7!, arg8!, arg9!]);
     }
 
     #endregion THE MUSCLE (Activity Execution) 
@@ -125,9 +125,9 @@ public static class Command
 
     #region THE PROXY (Type-Safe Execution)
 
-    public static ActivityProxy<TActivity> Call<TActivity>()
+    public static OperationProxy<TActivity> Call<TActivity>()
     {
-        return new ActivityProxy<TActivity>();
+        return new OperationProxy<TActivity>();
     }
 
     #endregion THE PROXY (Type-Safe Execution)
