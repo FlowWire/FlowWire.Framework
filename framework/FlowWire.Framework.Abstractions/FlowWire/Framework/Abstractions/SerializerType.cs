@@ -1,6 +1,6 @@
 ﻿namespace FlowWire.Framework.Abstractions;
 
-public enum CacheFormat
+public enum SerializerType
 {
     /// <summary>
     /// (Default) Raw binary serialization.

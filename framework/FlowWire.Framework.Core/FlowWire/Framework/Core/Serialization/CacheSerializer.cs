@@ -8,14 +8,14 @@ namespace FlowWire.Framework.Core.Serialization;
 
 public static class CacheSerializer
 {
-    public static byte[] Serialize<T>(T value, CacheFormat format)
+    public static byte[] Serialize<T>(T value, Abstractions.SerializerType format)
     {
         var writer = new ArrayBufferWriter<byte>();
         Serialize(writer, value, format);
         return writer.WrittenSpan.ToArray();
     }
 
-    public static void Serialize<T>(IBufferWriter<byte> writer, T value, CacheFormat format)
+    public static void Serialize<T>(IBufferWriter<byte> writer, T value, Abstractions.SerializerType format)
     {
         if (value is null)
         {
@@ -28,11 +28,11 @@ public static class CacheSerializer
         {
             switch (format)
             {
-                case CacheFormat.MemoryPack:
+                case Abstractions.SerializerType.MemoryPack:
                     MemoryPackSerializer.Serialize(writer, value);
                     break;
 
-                case CacheFormat.MemoryPackCompressed:
+                case Abstractions.SerializerType.MemoryPackCompressed:
                     using (var compressor = new BrotliCompressor())
                     {
                         MemoryPackSerializer.Serialize(compressor, value);
@@ -40,7 +40,7 @@ public static class CacheSerializer
                     }
                     break;
 
-                case CacheFormat.Json:
+                case Abstractions.SerializerType.Json:
                     using (var jsonWriter = new Utf8JsonWriter(writer))
                     {
                         JsonSerializer.Serialize(jsonWriter, value);
@@ -68,16 +68,16 @@ public static class CacheSerializer
             return default;
         }
 
-        var cacheFormatTag = (CacheFormat)data[0];
+        var cacheFormatTag = (Abstractions.SerializerType)data[0];
         var payload = data[1..];
 
         try
         {
             return cacheFormatTag switch
             {
-                CacheFormat.MemoryPack => MemoryPackSerializer.Deserialize<T>(payload),
-                CacheFormat.MemoryPackCompressed => DeserializeCompressed<T>(payload),
-                CacheFormat.Json => JsonSerializer.Deserialize<T>(payload),
+                Abstractions.SerializerType.MemoryPack => MemoryPackSerializer.Deserialize<T>(payload),
+                Abstractions.SerializerType.MemoryPackCompressed => DeserializeCompressed<T>(payload),
+                Abstractions.SerializerType.Json => JsonSerializer.Deserialize<T>(payload),
                 _ => throw new InvalidOperationException($"Unknown cache format tag: {cacheFormatTag}")
             };
         }
@@ -112,7 +112,7 @@ public static class CacheSerializer
         return MemoryPackSerializer.Deserialize<T>(decompressed);
     }
 
-    private static void SetCacheFormatTag(ref IBufferWriter<byte> writer, CacheFormat format)
+    private static void SetCacheFormatTag(ref IBufferWriter<byte> writer, Abstractions.SerializerType format)
     {
         var span = writer.GetSpan(1);
         span[0] = (byte)format;
