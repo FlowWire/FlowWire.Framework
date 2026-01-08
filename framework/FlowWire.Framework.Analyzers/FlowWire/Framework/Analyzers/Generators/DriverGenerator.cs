@@ -138,7 +138,7 @@ public class DriverGenerator : IIncrementalGenerator
                         sb.Append($", {p.Type}");
                     }
                 }
-                sb.Append(">");
+                sb.Append('>');
             }
             
             sb.AppendLine($"(\"{method.Name}\"{passThroughArgs});");
