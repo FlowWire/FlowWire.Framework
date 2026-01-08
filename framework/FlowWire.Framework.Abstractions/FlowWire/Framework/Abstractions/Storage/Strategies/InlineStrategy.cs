@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace FlowWire.Framework.Abstractions.Storage.Strategies;
 
-namespace FlowWire.Framework.Abstractions.Storage.Strategies;
-
-internal class InlineStrategy
+public class InlineStrategy : StorageStrategy
 {
+    public override StorageDecision Decide(object? value, string propertyName)
+    {
+        return StorageDecision.Inline();
+    }
 }

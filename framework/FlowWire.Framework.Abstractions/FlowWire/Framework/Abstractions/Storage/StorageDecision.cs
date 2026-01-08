@@ -3,12 +3,12 @@
 public readonly struct StorageDecision
 {
     public bool IsInline { get; }
-    public string? BackendName { get; }
+    public Type? BackendType { get; }
 
-    private StorageDecision(bool isInline, string? backendName)
+    private StorageDecision(bool isInline, Type? backendType)
     {
         IsInline = isInline;
-        BackendName = backendName;
+        BackendType = backendType;
     }
 
     public static StorageDecision Inline()
@@ -16,8 +16,8 @@ public readonly struct StorageDecision
         return new(true, null);
     }
 
-    public static StorageDecision StoreIn(string backendName)
+    public static StorageDecision StoreIn<T>() where T : IStorage
     {
-        return new(false, backendName);
+        return new(false, typeof(T));
     }
 }
