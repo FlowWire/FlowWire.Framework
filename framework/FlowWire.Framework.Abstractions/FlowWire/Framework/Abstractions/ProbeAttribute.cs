@@ -6,5 +6,5 @@ public sealed class ProbeAttribute(string? name = null) : Attribute
     public string? Name { get; } = name;
     public bool IsCached { get; set; } = false;
 
-    public CacheFormat Format { get; set; } = CacheFormat.MemoryPack;
+    public CacheFormat? Format { get; set; } // TODO: Default should come from FlowWireCoreOptions
 }
