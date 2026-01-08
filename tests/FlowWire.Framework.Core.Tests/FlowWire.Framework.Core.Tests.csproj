@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\framework\FlowWire.Framework.Core\FlowWire.Framework.Core.csproj" />
+    <ProjectReference Include="..\..\framework\FlowWire.Framework.Abstractions\FlowWire.Framework.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

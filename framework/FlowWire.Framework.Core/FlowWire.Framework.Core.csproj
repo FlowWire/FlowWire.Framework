@@ -10,10 +10,16 @@
   <ItemGroup>
     <PackageReference Include="MemoryPack" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlowWire.Framework.Abstractions\FlowWire.Framework.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlowWire.Framework.Core.Tests" />
   </ItemGroup>
 
 </Project>
