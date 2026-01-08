@@ -60,7 +60,7 @@ public class CacheSerializerTests
     public void Serialize_Deserialize_Null_ReturnsNull(Abstractions.SerializerType format)
     {
         TestData? data = null;
-        var bytes = Core.Serialization.CacheSerializer.Serialize<TestData>(data, format);
+        var bytes = Core.Serialization.CacheSerializer.Serialize<TestData?>(data, format);
         var result = Core.Serialization.CacheSerializer.Deserialize<TestData>(bytes);
 
         Assert.Null(result);
