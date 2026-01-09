@@ -10,6 +10,13 @@ public class ExecutionOptions
     public TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// The frequency at which the worker sends heartbeats to extend the lock.
+    /// This should be shorter than LockTimeout (e.g., half) to prevent race conditions.
+    /// Default: 10 seconds.
+    /// </summary>
+    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
     /// How long to keep a Flow in the database after it has Finished (Completed/Failed).
     /// Default: 7 days. (Set to TimeSpan.Zero to delete immediately).
     /// </summary>
