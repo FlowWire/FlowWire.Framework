@@ -6,9 +6,12 @@ using StackExchange.Redis;
 
 namespace FlowWire.Framework.Core.Infrastructure.Redis;
 
-public class RedisLockBackend(IConnectionMultiplexer redis, IOptions<FlowWireOptions> options) : IStorage
+public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStrategy, IOptions<FlowWireOptions> options) : IStorage
 {
+    private const char KeySeparator = ':';
+
     private readonly IConnectionMultiplexer _redis = redis;
+    private readonly IKeyStrategy _keyStrategy = keyStrategy;
     private readonly IOptions<FlowWireOptions> _options = options;
 
     private readonly RedisScript _acquireScript = new(LuaScripts.AcquireAndLock);
@@ -29,8 +32,8 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IOptions<FlowWireOpt
     {
         var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
 
-        var lockKey = GetLockKey(flowId);
-        var stateKey = GetStateKey(flowId);
+        var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
+        var stateKey = _keyStrategy.GetStateKey(flowId, KeySeparator);
 
         var timeoutMs = (long)_options.Value.Execution.LockTimeout.TotalMilliseconds;
 
@@ -51,8 +54,8 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IOptions<FlowWireOpt
     {
         var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
 
-        var lockKey = GetLockKey(flowId);
-        var stateKey = GetStateKey(flowId);
+        var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
+        var stateKey = _keyStrategy.GetStateKey(flowId, KeySeparator);
 
         var result = await _saveScript.ExecuteAsync(db,
             keys: [lockKey, stateKey],
@@ -66,7 +69,7 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IOptions<FlowWireOpt
     {
         var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
 
-        var lockKey = GetLockKey(flowId);
+        var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
         var timeoutMs = (long)_options.Value.Execution.LockTimeout.TotalMilliseconds;
 
         var result = await _heartbeatScript.ExecuteAsync(db,
@@ -75,16 +78,6 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IOptions<FlowWireOpt
         );
 
         return (int)result == 1;
-    }
-
-    private string GetLockKey(string flowId)
-    {
-        return $"{_options.Value.Connection.KeyPrefix}:lock:{flowId}";
-    }
-
-    private string GetStateKey(string flowId)
-    {
-        return $"{_options.Value.Connection.KeyPrefix}:state:{flowId}";
     }
 
     private static bool IsLocked(RedisResult? result)
