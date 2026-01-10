@@ -14,7 +14,7 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStra
     private readonly IKeyStrategy _keyStrategy = keyStrategy;
     private readonly IOptions<FlowWireOptions> _options = options;
 
-    private readonly RedisScript _acquireScript = new(LuaScripts.AcquireAndLock);
+    private readonly RedisScript _acquireScript = new(LuaScripts.AcquireAndLoad);
     private readonly RedisScript _saveScript = new(LuaScripts.SaveAndRelease);
     private readonly RedisScript _heartbeatScript = new(LuaScripts.ExtendLock);
 
