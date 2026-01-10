@@ -8,14 +8,14 @@ namespace FlowWire.Framework.Core.Serialization;
 
 public static class CacheSerializer
 {
-    public static byte[] Serialize<T>(T value, Abstractions.SerializerType format)
+    public static byte[] Serialize<T>(T value, SerializerType format)
     {
         var writer = new ArrayBufferWriter<byte>();
         Serialize(writer, value, format);
         return writer.WrittenSpan.ToArray();
     }
 
-    public static void Serialize<T>(IBufferWriter<byte> writer, T value, Abstractions.SerializerType format)
+    public static void Serialize<T>(IBufferWriter<byte> writer, T value, SerializerType format)
     {
         if (value is null)
         {
@@ -23,7 +23,7 @@ public static class CacheSerializer
         }
 
         SetCacheFormatTag(ref writer, format);
-        
+
         try
         {
             switch (format)
@@ -68,16 +68,16 @@ public static class CacheSerializer
             return default;
         }
 
-        var cacheFormatTag = (Abstractions.SerializerType)data[0];
+        var cacheFormatTag = (SerializerType)data[0];
         var payload = data[1..];
 
         try
         {
             return cacheFormatTag switch
             {
-                Abstractions.SerializerType.MemoryPack => MemoryPackSerializer.Deserialize<T>(payload),
-                Abstractions.SerializerType.MemoryPackCompressed => DeserializeCompressed<T>(payload),
-                Abstractions.SerializerType.Json => JsonSerializer.Deserialize<T>(payload),
+                SerializerType.MemoryPack => MemoryPackSerializer.Deserialize<T>(payload),
+                SerializerType.MemoryPackCompressed => DeserializeCompressed<T>(payload),
+                SerializerType.Json => JsonSerializer.Deserialize<T>(payload),
                 _ => throw new InvalidOperationException($"Unknown cache format tag: {cacheFormatTag}")
             };
         }
@@ -112,7 +112,7 @@ public static class CacheSerializer
         return MemoryPackSerializer.Deserialize<T>(decompressed);
     }
 
-    private static void SetCacheFormatTag(ref IBufferWriter<byte> writer, Abstractions.SerializerType format)
+    private static void SetCacheFormatTag(ref IBufferWriter<byte> writer, SerializerType format)
     {
         var span = writer.GetSpan(1);
         span[0] = (byte)format;
