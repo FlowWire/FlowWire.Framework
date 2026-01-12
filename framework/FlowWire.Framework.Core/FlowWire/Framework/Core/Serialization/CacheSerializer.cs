@@ -15,6 +15,13 @@ public static class CacheSerializer
         return writer.WrittenSpan.ToArray();
     }
 
+    public static byte[] Serialize(object value, Type type, SerializerType format)
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        Serialize(writer, value, type, format);
+        return writer.WrittenSpan.ToArray();
+    }
+
     public static void Serialize<T>(IBufferWriter<byte> writer, T value, SerializerType format)
     {
         if (value is null)
@@ -61,6 +68,52 @@ public static class CacheSerializer
         }
     }
 
+    public static void Serialize(IBufferWriter<byte> writer, object value, Type type, SerializerType format)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        SetCacheFormatTag(ref writer, format);
+
+        try
+        {
+            switch (format)
+            {
+                case SerializerType.MemoryPack:
+                    MemoryPackSerializer.Serialize(type, writer, value);
+                    break;
+
+                case SerializerType.MemoryPackCompressed:
+                    using (var compressor = new BrotliCompressor())
+                    {
+                        MemoryPackSerializer.Serialize(type, compressor, value);
+                        compressor.CopyTo(writer);
+                    }
+                    break;
+
+                case SerializerType.Json:
+                    using (var jsonWriter = new Utf8JsonWriter(writer))
+                    {
+                        JsonSerializer.Serialize(jsonWriter, value, type);
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported cache format.");
+            }
+        }
+        catch (Exception ex) when (ex is not ArgumentOutOfRangeException)
+        {
+            throw new CacheSerializationException(
+                $"Failed to serialize {type.Name} using {format}.",
+                format,
+                type,
+                ex);
+        }
+    }
+
     public static T? Deserialize<T>(ReadOnlySpan<byte> data)
     {
         if (data.IsEmpty)
@@ -91,6 +144,36 @@ public static class CacheSerializer
         }
     }
 
+    public static object? Deserialize(ReadOnlySpan<byte> data, Type type)
+    {
+        if (data.IsEmpty)
+        {
+            return default;
+        }
+
+        var cacheFormatTag = (SerializerType)data[0];
+        var payload = data[1..];
+
+        try
+        {
+            return cacheFormatTag switch
+            {
+                SerializerType.MemoryPack => MemoryPackSerializer.Deserialize(type, payload),
+                SerializerType.MemoryPackCompressed => DeserializeCompressed(payload, type),
+                SerializerType.Json => JsonSerializer.Deserialize(payload, type),
+                _ => throw new InvalidOperationException($"Unknown cache format tag: {cacheFormatTag}")
+            };
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            throw new CacheSerializationException(
+                $"Failed to deserialize {type.Name} using {cacheFormatTag}.",
+                cacheFormatTag,
+                type,
+                ex);
+        }
+    }
+
     public static bool TryDeserialize<T>(ReadOnlySpan<byte> data, out T? value)
     {
         try
@@ -110,6 +193,13 @@ public static class CacheSerializer
         using var decompressor = new BrotliDecompressor();
         var decompressed = decompressor.Decompress(compressed);
         return MemoryPackSerializer.Deserialize<T>(decompressed);
+    }
+
+    private static object? DeserializeCompressed(ReadOnlySpan<byte> compressed, Type type)
+    {
+        using var decompressor = new BrotliDecompressor();
+        var decompressed = decompressor.Decompress(compressed);
+        return MemoryPackSerializer.Deserialize(type, decompressed);
     }
 
     private static void SetCacheFormatTag(ref IBufferWriter<byte> writer, SerializerType format)
