@@ -6,6 +6,8 @@ public interface IKeyStrategy
 
     string GetStateKey(string flowId, char separator);
 
+    string GetInboxKey(string flowId, char separator);
+
     string GetQueuePendingKey(string group, char separator);
 
     string GetQueueInflightKey(string group, char separator);
