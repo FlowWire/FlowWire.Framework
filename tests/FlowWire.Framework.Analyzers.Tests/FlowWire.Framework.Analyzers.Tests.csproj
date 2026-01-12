@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\framework\FlowWire.Framework.Abstractions\FlowWire.Framework.Abstractions.csproj" />
-    <ProjectReference Include="..\..\framework\FlowWire.Framework.Analyzers\FlowWire.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <ProjectReference Include="..\..\framework\FlowWire.Framework.Analyzers\FlowWire.Framework.Analyzers.csproj" ReferenceOutputAssembly="true" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Text;
+using FlowWire.Framework.Abstractions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -11,13 +12,13 @@ public class FlowGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var deciders = context.SyntaxProvider
+        var flows = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) => IsCandidate(node),
-                transform: static (ctx, _) => GetDeciderModel(ctx))
+                transform: static (ctx, _) => GetFlowModel(ctx))
             .Where(static m => m is not null);
 
-        context.RegisterSourceOutput(deciders, static (spc, source) => Execute(spc, source!));
+        context.RegisterSourceOutput(flows, static (spc, source) => Execute(spc, source!));
     }
 
     private static bool IsCandidate(SyntaxNode node)
@@ -25,7 +26,7 @@ public class FlowGenerator : IIncrementalGenerator
         return node is ClassDeclarationSyntax c && c.AttributeLists.Count > 0;
     }
 
-    private static DeciderModel? GetDeciderModel(GeneratorSyntaxContext context)
+    private static FlowModel? GetFlowModel(GeneratorSyntaxContext context)
     {
         var classDecl = (ClassDeclarationSyntax)context.Node;
 
@@ -34,11 +35,52 @@ public class FlowGenerator : IIncrementalGenerator
             return null;
         }
 
-        // 1. Scan for Properties linked Fields ([Link])
+        var flowMode = GetFlowMode(symbol);
+        var isCircuit = flowMode == FlowMode.Circuit;
 
         var stateFields = ImmutableArray.CreateBuilder<StateFieldModel>();
-        string? contextProp = null;
         var linkedFields = ImmutableArray.CreateBuilder<LinkedFieldModel>();
+        var contextProp = ScanMembers(symbol, isCircuit, stateFields, linkedFields);
+
+        var impulses = ImmutableArray.CreateBuilder<ImpulseMethodModel>();
+        var probes = ImmutableArray.CreateBuilder<ProbeMethodModel>();
+        var flowMethod = ScanMethods(symbol, isCircuit, impulses, probes);
+
+        return new FlowModel(
+            symbol.ContainingNamespace.ToDisplayString(),
+            symbol.Name,
+            new EquatableArray<StateFieldModel>(stateFields.ToImmutable()),
+            contextProp,
+            flowMethod,
+            new EquatableArray<LinkedFieldModel>(linkedFields.ToImmutable()),
+            new EquatableArray<ImpulseMethodModel>(impulses.ToImmutable()),
+            new EquatableArray<ProbeMethodModel>(probes.ToImmutable())
+        );
+    }
+
+    private static FlowMode GetFlowMode(INamedTypeSymbol symbol)
+    {
+        var flowAttr = GetAttribute(symbol, "FlowWire.Framework.Abstractions.FlowAttribute");
+        if (flowAttr is not null)
+        {
+            foreach (var arg in flowAttr.NamedArguments)
+            {
+                if (arg.Key == "Mode" && arg.Value.Value is int val)
+                {
+                    return (FlowMode)val;
+                }
+            }
+        }
+        return FlowMode.Memory;
+    }
+
+    private static string? ScanMembers(
+        INamedTypeSymbol symbol,
+        bool isCircuit,
+        ImmutableArray<StateFieldModel>.Builder stateFields,
+        ImmutableArray<LinkedFieldModel>.Builder linkedFields)
+    {
+        string? contextProp = null;
 
         // Scan members (Properties and Fields)
         foreach (var member in symbol.GetMembers())
@@ -55,7 +97,7 @@ public class FlowGenerator : IIncrementalGenerator
                     {
                         contextProp = prop.Name;
                     }
-                    else
+                    else if (isCircuit)
                     {
                         linkedFields.Add(new LinkedFieldModel(prop.Name, prop.Type.ToDisplayString()));
                     }
@@ -71,16 +113,13 @@ public class FlowGenerator : IIncrementalGenerator
                 {
                      if (IsContextType(field.Type))
                      {
-                         // Handle field context injection if needed, though SetContext interface implies we might need property setter or assign field.
-                         // But for now, let's treat field context as contextProp too if it works?
-                         // The generator writes `this.{model.ContextProp} = context;`. Works for fields too.
                          contextProp = field.Name;
                      }
                      else if (IsFlowState(field.Type))
                      {
                         stateFields.Add(new StateFieldModel(field.Name, field.Type.ToDisplayString()));
                      }
-                     else
+                     else if (isCircuit)
                      {
                         linkedFields.Add(new LinkedFieldModel(field.Name, field.Type.ToDisplayString()));
                      }
@@ -88,13 +127,20 @@ public class FlowGenerator : IIncrementalGenerator
             }
         }
 
+        return contextProp;
+    }
+
+    private static string? ScanMethods(
+        INamedTypeSymbol symbol,
+        bool isCircuit,
+        ImmutableArray<ImpulseMethodModel>.Builder impulses,
+        ImmutableArray<ProbeMethodModel>.Builder probes)
+    {
         string? flowMethod = null;
-        var impulses = ImmutableArray.CreateBuilder<ImpulseMethodModel>();
-        var probes = ImmutableArray.CreateBuilder<ProbeMethodModel>();
 
         foreach (var method in symbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (IsWire(method))
+            if (isCircuit && IsWire(method))
             {
                 flowMethod = method.Name;
             }
@@ -114,16 +160,7 @@ public class FlowGenerator : IIncrementalGenerator
             }
         }
 
-        return new DeciderModel(
-            symbol.ContainingNamespace.ToDisplayString(),
-            symbol.Name,
-            new EquatableArray<StateFieldModel>(stateFields.ToImmutable()),
-            contextProp,
-            flowMethod,
-            new EquatableArray<LinkedFieldModel>(linkedFields.ToImmutable()),
-            new EquatableArray<ImpulseMethodModel>(impulses.ToImmutable()),
-            new EquatableArray<ProbeMethodModel>(probes.ToImmutable())
-        );
+        return flowMethod;
     }
 
     private static bool IsContextType(ITypeSymbol type)
@@ -179,9 +216,43 @@ public class FlowGenerator : IIncrementalGenerator
         return symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == attributeName);
     }
 
-    private static void Execute(SourceProductionContext context, DeciderModel model)
+    private static void Execute(SourceProductionContext context, FlowModel model)
     {
         var sb = new StringBuilder();
+
+        var stateTypeString = GetStateTypeString(model);
+
+        AppendFileHeader(sb, model);
+        AppendClassDefinition(sb, model, stateTypeString);
+        AppendSetState(sb, model);
+        AppendGetState(sb, model);
+        AppendSetContext(sb, model);
+        AppendReset(sb, model);
+        AppendExecuteMethod(sb, model);
+        AppendDispatchSignal(sb, model);
+        AppendDispatchQuery(sb, model);
+
+        sb.AppendLine("}"); // End Class
+
+        context.AddSource($"{model.ClassName}_Flow.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static string GetStateTypeString(FlowModel model)
+    {
+        if (model.StateFields.Count() == 1)
+        {
+            return model.StateFields.First().Type;
+        }
+        else if (model.StateFields.Count() > 1)
+        {
+            return $"{model.ClassName}_State";
+        }
+        
+        return "object";
+    }
+
+    private static void AppendFileHeader(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("// <auto-generated/>");
         sb.AppendLine("using FlowWire.Framework.Abstractions;");
         sb.AppendLine("using System.ComponentModel;"); // For EditorBrowsable
@@ -192,7 +263,14 @@ public class FlowGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine();
-        
+    }
+
+    private static void AppendClassDefinition(StringBuilder sb, FlowModel model, string stateTypeString)
+    {
+        sb.AppendLine($"[GeneratedFlowConfiguration(typeof({stateTypeString}))]");
+        sb.AppendLine($"partial class {model.ClassName} : IFlow");
+        sb.AppendLine("{");
+
         // Define composite state class if needed
         if (model.StateFields.Count() > 1) 
         {
@@ -205,11 +283,10 @@ public class FlowGenerator : IIncrementalGenerator
              sb.AppendLine("    }");
              sb.AppendLine();
         }
-        
-        sb.AppendLine($"partial class {model.ClassName} : IFlow");
-        sb.AppendLine("{");
+    }
 
-        // --- 1. Hydration (SetState) ---
+    private static void AppendSetState(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("    void IFlow.SetState(object state)");
         sb.AppendLine("    {");
         if (model.StateFields.Count() == 1)
@@ -227,8 +304,10 @@ public class FlowGenerator : IIncrementalGenerator
              }
         }
         sb.AppendLine("    }");
+    }
 
-        // --- 2. State Extraction (GetState) ---
+    private static void AppendGetState(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("    object IFlow.GetState()");
         sb.AppendLine("    {");
         if (model.StateFields.Count() == 1)
@@ -251,8 +330,10 @@ public class FlowGenerator : IIncrementalGenerator
             sb.AppendLine("        return new object(); // No State property defined");
         }
         sb.AppendLine("    }");
+    }
 
-        // --- 3. Context Injection (SetContext) ---
+    private static void AppendSetContext(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("    void IFlow.SetContext(IFlowContext context)");
         sb.AppendLine("    {");
         if (model.ContextProp != null)
@@ -267,8 +348,10 @@ public class FlowGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("    }");
+    }
 
-        // --- 4. Reset (Pooling) ---
+    private static void AppendReset(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("    void IFlow.Reset()");
         sb.AppendLine("    {");
         foreach(var f in model.StateFields)
@@ -280,8 +363,10 @@ public class FlowGenerator : IIncrementalGenerator
             sb.AppendLine($"        this.{model.ContextProp} = default!;");
         }
         sb.AppendLine("    }");
+    }
 
-        // --- 5. The Brain (Execute) ---
+    private static void AppendExecuteMethod(StringBuilder sb, FlowModel model)
+    {
         sb.AppendLine("    FlowCommand IFlow.Execute()");
         sb.AppendLine("    {");
         if (model.FlowMethod != null)
@@ -290,12 +375,14 @@ public class FlowGenerator : IIncrementalGenerator
         }
         else
         {
-            sb.AppendLine("        return Command.Finish(); // No [Flow] method found");
+            sb.AppendLine("        return Command.Finish(); // No [Wire] method found");
         }
         sb.AppendLine("    }");
+    }
 
-        // --- 6. Signal Dispatching ---
-        sb.AppendLine("    void IFlow.DispatchSignal(string signalName, object[] args)");
+    private static void AppendDispatchSignal(StringBuilder sb, FlowModel model)
+    {
+        sb.AppendLine("    void IFlow.DispatchSignal(string signalName, object? arg)");
         sb.AppendLine("    {");
 
         if (model.Signals.Any())
@@ -305,22 +392,32 @@ public class FlowGenerator : IIncrementalGenerator
             foreach (var signal in model.Signals)
             {
                 sb.AppendLine($"            case \"{signal.SignalName}\":");
-
-                // Construct the call: this.OnSignal((Type)args[0], (Type)args[1]);
-                var callArgs = new StringBuilder();
-                var index = 0;
-                foreach (var paramType in signal.Parameters)
+                
+                if (!signal.Parameters.Any())
                 {
-                    if (index > 0)
-                    {
-                        callArgs.Append(", ");
-                    }
-                    // Add cast
-                    callArgs.Append($"({paramType})args[{index}]");
-                    index++;
+                    sb.AppendLine($"                this.{signal.MethodName}();");
                 }
-
-                sb.AppendLine($"                this.{signal.MethodName}({callArgs});");
+                else if (signal.Parameters.Count() == 1)
+                {
+                    sb.AppendLine($"                this.{signal.MethodName}(({signal.Parameters[0]})arg!);");
+                }
+                else
+                {
+                    sb.AppendLine($"                var args = (object[])arg!;");
+                    
+                    var callArgs = new StringBuilder();
+                    var index = 0;
+                    foreach (var paramType in signal.Parameters)
+                    {
+                        if (index > 0)
+                        {
+                            callArgs.Append(", ");
+                        }
+                        callArgs.Append($"({paramType})args[{index}]");
+                        index++;
+                    }
+                    sb.AppendLine($"                this.{signal.MethodName}({callArgs});");
+                }
                 sb.AppendLine("                break;");
             }
             sb.AppendLine("            default:");
@@ -330,9 +427,11 @@ public class FlowGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("    }");
+    }
 
-        // --- 7. Query Dispatching ---
-        sb.AppendLine("    object? IFlow.DispatchQuery(string queryName, object[] args)");
+    private static void AppendDispatchQuery(StringBuilder sb, FlowModel model)
+    {
+        sb.AppendLine("    object? IFlow.DispatchQuery(string queryName, object? arg)");
         sb.AppendLine("    {");
 
         if (model.Queries.Any())
@@ -343,20 +442,32 @@ public class FlowGenerator : IIncrementalGenerator
             {
                 sb.AppendLine($"            case \"{query.QueryName}\":");
                 
-                var callArgs = new StringBuilder();
-                var index = 0;
-                foreach (var paramType in query.Parameters)
+                if (!query.Parameters.Any())
                 {
-                    if (index > 0)
-                    {
-                        callArgs.Append(", ");
-                    }
-                    // Add cast
-                    callArgs.Append($"({paramType})args[{index}]");
-                    index++;
+                     sb.AppendLine($"                return this.{query.MethodName}();");
                 }
+                else if (query.Parameters.Count() == 1)
+                {
+                    sb.AppendLine($"                return this.{query.MethodName}(({query.Parameters[0]})arg!);");
+                }
+                else
+                {
+                    sb.AppendLine($"                var args = (object[])arg!;");
 
-                sb.AppendLine($"                return this.{query.MethodName}({callArgs});");
+                    var callArgs = new StringBuilder();
+                    var index = 0;
+                    foreach (var paramType in query.Parameters)
+                    {
+                        if (index > 0)
+                        {
+                            callArgs.Append(", ");
+                        }
+                        callArgs.Append($"({paramType})args[{index}]");
+                        index++;
+                    }
+
+                    sb.AppendLine($"                return this.{query.MethodName}({callArgs});");
+                }
             }
             sb.AppendLine("            default:");
             sb.AppendLine("                return null;"); // Unknown query
@@ -366,28 +477,5 @@ public class FlowGenerator : IIncrementalGenerator
         {
             sb.AppendLine("        return null;");
         }
-
-        sb.AppendLine("    }");
-
-        sb.AppendLine("}"); // End Class
-
-        context.AddSource($"{model.ClassName}_Decider.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 }
-
-// --- Supporting Models ---
-internal record DeciderModel(
-    string Namespace,
-    string ClassName,
-    EquatableArray<StateFieldModel> StateFields,
-    string? ContextProp,
-    string? FlowMethod,
-    EquatableArray<LinkedFieldModel> InjectedFields,
-    EquatableArray<ImpulseMethodModel> Signals,
-    EquatableArray<ProbeMethodModel> Queries
-);
-
-internal record StateFieldModel(string Name, string Type);
-internal record LinkedFieldModel(string Name, string Type);
-internal record ImpulseMethodModel(string MethodName, string SignalName, EquatableArray<string> Parameters);
-internal record ProbeMethodModel(string MethodName, string QueryName, EquatableArray<string> Parameters);

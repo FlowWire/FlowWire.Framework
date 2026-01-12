@@ -29,18 +29,17 @@ public interface IFlow
     /// Routes an incoming signal to the correct method.
     /// This is typically implemented via Source Generators to avoid Reflection.
     /// </summary>
-    void DispatchSignal(string signalName, object[] args);
+    void DispatchSignal(string signalName, object? arg);
 
     /// <summary>
     /// Dispatches a query to the appropriate handler.
     /// </summary>
-    object? DispatchQuery(string queryName, object[] args);
+    object? DispatchQuery(string queryName, object? arg);
 
     /// <summary>
     /// Executes the user's logic loop (Decide).
     /// </summary>
     FlowCommand Execute();
-
 
     /// <summary>
     /// Clears references to state/context.

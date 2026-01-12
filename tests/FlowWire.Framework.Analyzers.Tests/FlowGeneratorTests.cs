@@ -19,7 +19,7 @@ public class FlowGeneratorTests
                     public int Count { get; set; } 
                 }
 
-                [Flow]
+                [Flow(Mode = FlowMode.Circuit)]
                 public partial class MyFlow
                 {
                     [Link]
@@ -72,8 +72,9 @@ public class FlowGeneratorTests
         Assert.Empty(diagnostics);
         var code = generated[0];
 
-        Assert.Contains("void IFlow.DispatchSignal(string signalName, object[] args)", code);
+        Assert.Contains("void IFlow.DispatchSignal(string signalName, object? arg)", code);
         Assert.Contains("case \"MySignal\":", code);
+        Assert.Contains("var args = (object[])arg!;", code);
         Assert.Contains("this.HandleSignal((string)args[0], (int)args[1]);", code);
     }
 
@@ -97,9 +98,9 @@ public class FlowGeneratorTests
         Assert.Empty(diagnostics);
         var code = generated[0];
 
-        Assert.Contains("object? IFlow.DispatchQuery(string queryName, object[] args)", code);
+        Assert.Contains("object? IFlow.DispatchQuery(string queryName, object? arg)", code);
         Assert.Contains("case \"MyQuery\":", code);
-        Assert.Contains("return this.GetStatus((int)args[0]);", code);
+        Assert.Contains("return this.GetStatus((int)arg!);", code);
     }
 
     [Fact]
@@ -112,7 +113,7 @@ public class FlowGeneratorTests
             {
                 public class MyService {}
 
-                [Flow]
+                [Flow(Mode = FlowMode.Circuit)]
                 public partial class DiFlow
                 {
                     [Link]
@@ -129,6 +130,42 @@ public class FlowGeneratorTests
 
         Assert.Contains("if (this.Service == null) this.Service = context.GetService<TestNamespace.MyService>();", code);
         Assert.Contains("if (this.ServiceProp == null) this.ServiceProp = context.GetService<TestNamespace.MyService>();", code);
+    }
+
+    [Fact]
+    public void Generate_MemoryMode_IgnoresWireAndDrivers()
+    {
+        var source = @"
+            using FlowWire.Framework.Abstractions;
+
+            namespace TestNamespace
+            {
+                public class MyService {}
+
+                [Flow(Mode = FlowMode.Memory)]
+                public partial class MemoryFlow
+                {
+                    [Link]
+                    public MyService Service;
+
+                    [Wire]
+                    public FlowCommand Run()
+                    {
+                        return Command.Finish();
+                    }
+                }
+            }";
+        var (diagnostics, generated) = GeneratorTestHelper.RunGenerator(new FlowGenerator(), source);
+
+        Assert.Empty(diagnostics);
+        var code = generated[0];
+
+        // Should ignore Wire
+        Assert.Contains("return Command.Finish(); // No [Wire] method found", code);
+        Assert.DoesNotContain("return this.Run();", code);
+
+        // Should ignore Driver injection
+        Assert.DoesNotContain("context.GetService<TestNamespace.MyService>()", code);
     }
 
     [Fact]
@@ -153,7 +190,7 @@ public class FlowGeneratorTests
         // Should return new object for GetState
         Assert.Contains("return new object(); // No State property defined", code);
         // Execute should return Finish()
-        Assert.Contains("return Command.Finish(); // No [Flow] method found", code);
+        Assert.Contains("return Command.Finish(); // No [Wire] method found", code);
         // Reset should be empty-ish
         Assert.Contains("void IFlow.Reset()", code);
     }
@@ -189,15 +226,15 @@ public class FlowGeneratorTests
 
         // Impulses
         Assert.Contains("case \"Sig1\":", code);
-        Assert.Contains("this.OnSig1((int)args[0]);", code);
+        Assert.Contains("this.OnSig1((int)arg!);", code);
         Assert.Contains("case \"Sig2\":", code);
-        Assert.Contains("this.OnSig2((string)args[0]);", code);
+        Assert.Contains("this.OnSig2((string)arg!);", code);
 
         // Probes
         Assert.Contains("case \"Q1\":", code);
         Assert.Contains("return this.GetQ1();", code);
         Assert.Contains("case \"Q2\":", code);
-        Assert.Contains("return this.GetQ2((bool)args[0]);", code);
+        Assert.Contains("return this.GetQ2((bool)arg!);", code);
     }
 
     [Fact]
@@ -221,6 +258,7 @@ public class FlowGeneratorTests
         Assert.Empty(diagnostics);
         var code = generated[0];
 
+        Assert.Contains("var args = (object[])arg!;", code);
         Assert.Contains("this.OnImpulse((System.Collections.Generic.List<string>)args[0], (System.Collections.Generic.Dictionary<string, int>)args[1]);", code);
     }
 
