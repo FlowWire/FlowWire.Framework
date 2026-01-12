@@ -12,7 +12,7 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStra
 
     private readonly IConnectionMultiplexer _redis = redis;
     private readonly IKeyStrategy _keyStrategy = keyStrategy;
-    private readonly IOptions<FlowWireOptions> _options = options;
+    private readonly FlowWireOptions _options = options.Value;
 
     private readonly RedisScript _acquireScript = new(LuaScripts.AcquireAndLoad);
     private readonly RedisScript _saveScript = new(LuaScripts.SaveAndRelease);
@@ -30,12 +30,12 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStra
 
     public async ValueTask<(FlowLease, byte[])> TryAcquireAndLoadAsync(string flowId, string token)
     {
-        var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
+        var db = _redis.GetDatabase(_options.Connection.DatabaseIndex);
 
         var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
         var stateKey = _keyStrategy.GetStateKey(flowId, KeySeparator);
 
-        var timeoutMs = (long)_options.Value.Execution.LockTimeout.TotalMilliseconds;
+        var timeoutMs = (long)_options.Execution.LockTimeout.TotalMilliseconds;
 
         var result = await _acquireScript.ExecuteAsync(db,
             keys: [lockKey, stateKey],
@@ -52,7 +52,7 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStra
 
     public async ValueTask<bool> SaveAndReleaseAsync(string flowId, string token, byte[] data)
     {
-        var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
+        var db = _redis.GetDatabase(_options.Connection.DatabaseIndex);
 
         var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
         var stateKey = _keyStrategy.GetStateKey(flowId, KeySeparator);
@@ -67,10 +67,10 @@ public class RedisLockBackend(IConnectionMultiplexer redis, IKeyStrategy keyStra
 
     public async ValueTask<bool> HeartbeatAsync(string flowId, string token)
     {
-        var db = _redis.GetDatabase(_options.Value.Connection.DatabaseIndex);
+        var db = _redis.GetDatabase(_options.Connection.DatabaseIndex);
 
         var lockKey = _keyStrategy.GetLockKey(flowId, KeySeparator);
-        var timeoutMs = (long)_options.Value.Execution.LockTimeout.TotalMilliseconds;
+        var timeoutMs = (long)_options.Execution.LockTimeout.TotalMilliseconds;
 
         var result = await _heartbeatScript.ExecuteAsync(db,
             keys: [lockKey],
