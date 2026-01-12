@@ -12,4 +12,14 @@ public sealed class ImpulseAttribute(string? name = null) : Attribute
     /// If null, the method name is used.
     /// </summary>
     public string? Name { get; } = name;
+
+    /// <summary>
+    /// <b>Only applicable in <see cref="FlowMode.Circuit"/>.</b>
+    /// <br/>
+    /// If <c>true</c>, this signal <b>Energizes</b> (Powers Up) the circuit, 
+    /// allowing a new Flow instance to be created.
+    /// <br/>
+    /// <i>Default: false.</i>
+    /// </summary>
+    public bool Energizes { get; set; } = false;
 }
