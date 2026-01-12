@@ -3,6 +3,8 @@
   <Import Project="..\..\common.props" />
 
   <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+
     <AssemblyName>FlowWire.Framework.Abstractions</AssemblyName>
     <PackageId>FlowWire.Framework.Abstractions</PackageId>
   </PropertyGroup>
