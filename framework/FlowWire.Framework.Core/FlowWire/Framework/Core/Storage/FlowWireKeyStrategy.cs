@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+﻿using System.Runtime.CompilerServices;
 using FlowWire.Framework.Abstractions.Configuration;
 using FlowWire.Framework.Abstractions.Storage;
 using Microsoft.Extensions.Options;
@@ -9,121 +9,114 @@ public class FlowWireKeyStrategy(IOptions<FlowWireOptions> options) : IKeyStrate
 {
     private readonly string _prefix = options.Value.Connection.KeyPrefix;
 
+    private const string SegmentQueue = "q";
+    private const string SegmentLock = "l";
+    private const string SegmentState = "s";
+    private const string SegmentFlow = "f";
+
+    /// <summary>
+    /// Generates the flow lock key.
+    /// </summary>
     public string GetLockKey(string flowId, char separator)
     {
-        return BuildKey(separator, "l", flowId);
+        return BuildKey(separator, SegmentLock, flowId);
     }
 
+    /// <summary>
+    /// Generates the flow state key.
+    /// </summary>
     public string GetStateKey(string flowId, char separator)
     {
-        return BuildKey(separator, "s", flowId);
+        return BuildKey(separator, SegmentState, flowId);
     }
 
+    /// <summary>
+    /// Generates the flow inbox key.
+    /// </summary>
+    public string GetInboxKey(string flowId, char separator)
+    {
+        return BuildKey(separator, SegmentFlow, flowId, "inbox");
+    }
+
+    /// <summary>
+    /// Generates the queue dead-letter queue key.
+    /// </summary>
     public string GetQueueDlqKey(string group, char separator)
     {
-        return BuildKey(separator, "q", group, "dlq");
+        return BuildKey(separator, SegmentQueue, group, "dlq");
     }
 
+    /// <summary>
+    /// Generates the queue inflight key.
+    /// </summary>
     public string GetQueueInflightKey(string group, char separator)
     {
-        return BuildKey(separator, "q", group, "inflight");
+        return BuildKey(separator, SegmentQueue, group, "inflight");
     }
 
+    /// <summary>
+    /// Generates the queue pending key.
+    /// </summary>
     public string GetQueuePendingKey(string group, char separator)
     {
-        return BuildKey(separator, "q", group, "pending");
+        return BuildKey(separator, SegmentQueue, group, "pending");
     }
 
-    private string BuildKey(char separator, string s1, string s2)
+    public string BuildKey(char separator, string s1, string s2)
     {
-        var totalLength = _prefix.Length + 1 + s1.Length + 1 + s2.Length;
+        var length = _prefix.Length + 1 + s1.Length + 1 + s2.Length;
 
-        return string.Create(totalLength, (_prefix, separator, s1, s2), static (span, state) =>
+        return string.Create(length, (_prefix, separator, s1, s2), static (span, state) =>
         {
-            var (prefix, sep, seg1, seg2) = state;
-
-            prefix.AsSpan().CopyTo(span);
-            var pos = prefix.Length;
-
-            span[pos++] = sep;
-
-            seg1.AsSpan().CopyTo(span[pos..]);
-            pos += seg1.Length;
-
-            span[pos++] = sep;
-
-            seg2.AsSpan().CopyTo(span[pos..]);
+            var writer = new SpanWriter(span);
+            writer.Write(state._prefix);
+            writer.Write(state.separator);
+            writer.Write(state.s1);
+            writer.Write(state.separator);
+            writer.Write(state.s2);
         });
     }
 
-    private string BuildKey(char separator, string s1, string s2, string s3)
+    public string BuildKey(char separator, string s1, string s2, string s3)
     {
-        var totalLength = _prefix.Length + 1 + s1.Length + 1 + s2.Length + 1 + s3.Length;
+        var length = _prefix.Length + 1 + s1.Length + 1 + s2.Length + 1 + s3.Length;
 
-        return string.Create(totalLength, (_prefix, separator, s1, s2, s3), static (span, state) =>
+        return string.Create(length, (_prefix, separator, s1, s2, s3), static (span, state) =>
         {
-            var (prefix, sep, seg1, seg2, seg3) = state;
-
-            prefix.AsSpan().CopyTo(span);
-            var pos = prefix.Length;
-
-            span[pos++] = sep;
-
-            seg1.AsSpan().CopyTo(span[pos..]);
-            pos += seg1.Length;
-
-            span[pos++] = sep;
-
-            seg2.AsSpan().CopyTo(span[pos..]);
-            pos += seg2.Length;
-
-            span[pos++] = sep;
-
-            seg3.AsSpan().CopyTo(span[pos..]);
+            var writer = new SpanWriter(span);
+            writer.Write(state._prefix);
+            writer.Write(state.separator);
+            writer.Write(state.s1);
+            writer.Write(state.separator);
+            writer.Write(state.s2);
+            writer.Write(state.separator);
+            writer.Write(state.s3);
         });
     }
 
-    private string BuildKey(char separator, params ReadOnlySpan<string> segments)
+    private ref struct SpanWriter
     {
-        var totalLength = _prefix.Length;
-        for (var i = 0; i < segments.Length; i++)
+        private Span<char> _span;
+        private int _position;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SpanWriter(Span<char> span)
         {
-            totalLength += 1 + segments[i].Length;
+            _span = span;
+            _position = 0;
         }
 
-        const int StackAllocThreshold = 512;
-        if (totalLength <= StackAllocThreshold)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write(string value)
         {
-            Span<char> span = stackalloc char[totalLength];
-            Fill(span, separator, segments);
-            return new string(span);
+            value.AsSpan().CopyTo(_span[_position..]);
+            _position += value.Length;
         }
-        else
-        {
-            var rented = ArrayPool<char>.Shared.Rent(totalLength);
-            try
-            {
-                var span = rented.AsSpan(0, totalLength);
-                Fill(span, separator, segments);
-                return new string(span);
-            }
-            finally
-            {
-                ArrayPool<char>.Shared.Return(rented);
-            }
-        }
-    }
 
-    private void Fill(Span<char> span, char separator, ReadOnlySpan<string> segments)
-    {
-        _prefix.AsSpan().CopyTo(span);
-        var pos = _prefix.Length;
-
-        for (var i = 0; i < segments.Length; i++)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write(char value)
         {
-            span[pos++] = separator;
-            segments[i].AsSpan().CopyTo(span[pos..]);
-            pos += segments[i].Length;
+            _span[_position++] = value;
         }
     }
 }
