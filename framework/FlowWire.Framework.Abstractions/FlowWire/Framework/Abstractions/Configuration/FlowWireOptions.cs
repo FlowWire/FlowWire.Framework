@@ -19,6 +19,11 @@ public class FlowWireOptions
     public StorageOptions Storage { get; } = new();
 
     /// <summary>
+    /// Settings for the Orchestrator service (Logic execution).
+    /// </summary>
+    public OrchestratorOptions Orchestrator { get; set; } = new();
+
+    /// <summary>
     /// Options for worker processes and driver execution.
     /// </summary>
     public WorkerOptions Worker { get; } = new();
