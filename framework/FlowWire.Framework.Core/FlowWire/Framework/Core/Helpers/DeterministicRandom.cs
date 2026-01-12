@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace FlowWire.Framework.Core;
+namespace FlowWire.Framework.Core.Helpers;
 
 /// <summary>
 /// A fast, deterministic random number generator based on the Xoshiro256** algorithm.
@@ -18,8 +18,20 @@ public sealed class DeterministicRandom : Random
     /// </summary>
     public DeterministicRandom(int seed)
     {
-        // Use SplitMix64 to initialize the Xoshiro256** state from a single 32-bit seed.
-        // This ensures the state is robustly seeded even if the input seed is simple (e.g., 0 or 1).
+        Reset(seed);
+    }
+
+    /// <summary>
+    /// Initializes with a time-dependent seed (non-deterministic behavior).
+    /// </summary>
+    public DeterministicRandom() : this(Environment.TickCount) { }
+
+    /// <summary>
+    /// Re-seeds the generator without allocating a new object.
+    /// CRITICAL for Object Pooling.
+    /// </summary>
+    public void Reset(int seed)
+    {
         var z = (ulong)seed;
 
         _s0 = SplitMix64(ref z);
@@ -27,11 +39,6 @@ public sealed class DeterministicRandom : Random
         _s2 = SplitMix64(ref z);
         _s3 = SplitMix64(ref z);
     }
-
-    /// <summary>
-    /// Initializes with a time-dependent seed (non-deterministic behavior).
-    /// </summary>
-    public DeterministicRandom() : this(Environment.TickCount) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong SplitMix64(ref ulong x)
