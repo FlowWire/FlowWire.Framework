@@ -64,4 +64,23 @@ static internal class LuaScripts
             return msg
         end
         return nil";
+
+    /// <summary>
+    /// Atomically pops multiple items from Pending and moves them to InFlight with a visibility timeout score.
+    /// KEYS[1]: Pending List
+    /// KEYS[2]: In-Flight ZSet
+    /// ARGV[1]: Current Time (Unix MS)
+    /// ARGV[2]: Visibility Timeout (ms)
+    /// ARGV[3]: Batch Size
+    /// </summary>
+    public const string PopWorkBatch = @"
+        local msgs = redis.call('rpop', KEYS[1], ARGV[3])
+        if msgs and #msgs > 0 then
+            local expiry = tonumber(ARGV[1]) + tonumber(ARGV[2])
+            for i, msg in ipairs(msgs) do
+                redis.call('zadd', KEYS[2], expiry, msg)
+            end
+            return msgs
+        end
+        return {}";
 }
