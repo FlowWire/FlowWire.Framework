@@ -35,11 +35,11 @@ public static class CacheSerializer
         {
             switch (format)
             {
-                case Abstractions.SerializerType.MemoryPack:
+                case SerializerType.MemoryPack:
                     MemoryPackSerializer.Serialize(writer, value);
                     break;
 
-                case Abstractions.SerializerType.MemoryPackCompressed:
+                case SerializerType.MemoryPackCompressed:
                     using (var compressor = new BrotliCompressor())
                     {
                         MemoryPackSerializer.Serialize(compressor, value);
@@ -47,7 +47,7 @@ public static class CacheSerializer
                     }
                     break;
 
-                case Abstractions.SerializerType.Json:
+                case SerializerType.Json:
                     using (var jsonWriter = new Utf8JsonWriter(writer))
                     {
                         JsonSerializer.Serialize(jsonWriter, value);
@@ -144,6 +144,11 @@ public static class CacheSerializer
         }
     }
 
+    public static T? Deserialize<T>(ReadOnlyMemory<byte> data)
+    {
+        return Deserialize<T>(data.Span);
+    }
+
     public static object? Deserialize(ReadOnlySpan<byte> data, Type type)
     {
         if (data.IsEmpty)
@@ -174,6 +179,11 @@ public static class CacheSerializer
         }
     }
 
+    public static object? Deserialize(ReadOnlyMemory<byte> data, Type type)
+    {
+        return Deserialize(data.Span, type);
+    }
+
     public static bool TryDeserialize<T>(ReadOnlySpan<byte> data, out T? value)
     {
         try
@@ -186,6 +196,11 @@ public static class CacheSerializer
             value = default;
             return false;
         }
+    }
+
+    public static bool TryDeserialize<T>(ReadOnlyMemory<byte> data, out T? value)
+    {
+        return TryDeserialize(data.Span, out value);
     }
 
     private static T? DeserializeCompressed<T>(ReadOnlySpan<byte> compressed)
