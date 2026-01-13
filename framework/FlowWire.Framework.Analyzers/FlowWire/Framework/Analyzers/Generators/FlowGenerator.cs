@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Text;
-using FlowWire.Framework.Abstractions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -36,7 +35,7 @@ public class FlowGenerator : IIncrementalGenerator
         }
 
         var flowMode = GetFlowMode(symbol);
-        var isCircuit = flowMode == FlowMode.Circuit;
+        var isCircuit = flowMode == 1;
 
         var stateFields = ImmutableArray.CreateBuilder<StateFieldModel>();
         var linkedFields = ImmutableArray.CreateBuilder<LinkedFieldModel>();
@@ -58,7 +57,7 @@ public class FlowGenerator : IIncrementalGenerator
         );
     }
 
-    private static FlowMode GetFlowMode(INamedTypeSymbol symbol)
+    private static int GetFlowMode(INamedTypeSymbol symbol)
     {
         var flowAttr = GetAttribute(symbol, "FlowWire.Framework.Abstractions.FlowAttribute");
         if (flowAttr is not null)
@@ -67,11 +66,11 @@ public class FlowGenerator : IIncrementalGenerator
             {
                 if (arg.Key == "Mode" && arg.Value.Value is int val)
                 {
-                    return (FlowMode)val;
+                    return val;
                 }
             }
         }
-        return FlowMode.Memory;
+        return 0;
     }
 
     private static string? ScanMembers(
