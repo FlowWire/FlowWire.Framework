@@ -1,4 +1,7 @@
 ﻿using BenchmarkDotNet.Running;
+using FlowWire.Framework.Abstractions;
+
+[assembly: FlowWireAssembly]
 
 namespace FlowWire.Framework.Benchmarks;
 
