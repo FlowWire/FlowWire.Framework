@@ -15,4 +15,7 @@ static internal partial class LogDefinitions
 
     [LoggerMessage(EventId = 1004, Level = LogLevel.Warning, Message = "Optimistic concurrency fault for Flow {flowId}. Discarding result.")]
     public static partial void LogConcurrencyFault(this ILogger logger, string flowId);
+    
+    [LoggerMessage(EventId = 1005, Level = LogLevel.Warning, Message = "Flow {FlowId} is Cold (Not Existent) and Mode is Circuit. Impulse '{Impulse}' is not marked as [Energizes]. Execution rejected.")]
+    public static partial void LogFlowNotEnergized(this ILogger logger, string flowId, string impulse);
 }
