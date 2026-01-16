@@ -27,7 +27,7 @@ public class FlowTypeRegistry
         {
             foreach (var type in asm.GetTypes())
             {
-                if (type.GetCustomAttribute<FlowAttribute>() == null)
+                if (type.GetCustomAttribute<FlowAttribute>() is null)
                 {
                     continue;
                 }
