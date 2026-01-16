@@ -35,6 +35,16 @@ internal sealed class RedisScript(string script)
         return ExecuteInternalAsync(db, [key], [value]);
     }
 
+    public ValueTask<RedisResult> ExecuteAsync(IDatabase db, RedisKey k1, RedisKey k2, RedisValue v1, RedisValue v2)
+    {
+        return ExecuteInternalAsync(db, [k1, k2], [v1, v2]);
+    }
+
+    public ValueTask<RedisResult> ExecuteAsync(IDatabase db, RedisKey k1, RedisKey k2, RedisKey k3, RedisValue v1, RedisValue v2, RedisValue v3)
+    {
+        return ExecuteInternalAsync(db, [k1, k2, k3], [v1, v2, v3]);
+    }
+
     private async ValueTask<RedisResult> ExecuteInternalAsync(
         IDatabase db,
         RedisKey[] keys,

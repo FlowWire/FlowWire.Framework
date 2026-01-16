@@ -1,10 +1,12 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using FlowWire.Framework.Abstractions;
 using FlowWire.Framework.Abstractions.Configuration;
 using FlowWire.Framework.Abstractions.Model;
 using FlowWire.Framework.Abstractions.Storage;
+using FlowWire.Framework.Core.Helpers;
 using FlowWire.Framework.Core.Infrastructure.Redis;
 using FlowWire.Framework.Core.Logging;
 using FlowWire.Framework.Core.Registry;
@@ -25,10 +27,14 @@ public class FlowExecutor : IFlowExecutor
     private readonly ILogger<FlowExecutor> _logger;
     private readonly RedisScript _acquireScript;
     private readonly RedisScript _saveScript;
+    private readonly RedisScript _releaseScript;
 
     // Pools
     private readonly FrozenDictionary<Type, ObjectPool<IFlow>> _flowPools;
     private readonly ObjectPool<PooledFlowContext> _contextPool;
+
+    // Key Cache (Simple LRU would be better for massive unique Flow IDs, but this covers hotspots)
+    private readonly ConcurrentDictionary<string, (RedisKey Lock, RedisKey State, RedisKey Inbox)> _keyCache = new();
 
     public FlowExecutor(
         IConnectionMultiplexer redis,
@@ -45,6 +51,7 @@ public class FlowExecutor : IFlowExecutor
         _logger = logger;
         _acquireScript = new(LuaScripts.AcquireAndLoad);
         _saveScript = new(LuaScripts.SaveAndRelease);
+        _releaseScript = new(LuaScripts.Release);
 
         // Initialize Context Pool
         var contextProvider = new DefaultObjectPoolProvider();
@@ -67,7 +74,7 @@ public class FlowExecutor : IFlowExecutor
             return;
         }
 
-        var sw = Stopwatch.StartNew();
+        var sw = ValueStopwatch.StartNew();
 
         try
         {
@@ -84,6 +91,13 @@ public class FlowExecutor : IFlowExecutor
             }
 
             var (stateBytes, inboxItems) = UnpackLoadResult(loadResult);
+
+            if (!IsEnergized(meta, stateBytes, impulse))
+            {
+                _logger.LogFlowNotEnergized(impulse.FlowId, impulse.ImpulseName);
+                await ReleaseLockAsync(db, lockKey, fenceToken);
+                return;
+            }
 
             var flow = _flowPools[meta.FlowType].Get();
             var context = _contextPool.Get();
@@ -102,7 +116,10 @@ public class FlowExecutor : IFlowExecutor
                 }
                 else
                 {
-                    _logger.LogFlowTick(impulse.FlowId, meta.FlowType.Name, sw.ElapsedMilliseconds, command.ToString()!);
+                    if (_logger.IsEnabled(LogLevel.Information)) // Perf: Avoid ToString() if not needed
+                    {
+                        _logger.LogFlowTick(impulse.FlowId, meta.FlowType.Name, sw.GetElapsedMilliseconds(), command.ToString()!);
+                    }
                 }
             }
             finally
@@ -117,30 +134,45 @@ public class FlowExecutor : IFlowExecutor
         }
     }
 
-    private static Memory<byte> GenerateFenceToken()
+    private static RedisValue GenerateFenceToken()
     {
-        var tokenBuffer = ArrayPool<byte>.Shared.Rent(16);
-        Guid.NewGuid().TryWriteBytes(tokenBuffer.AsSpan(0, 16));
-        return tokenBuffer.AsMemory(0, 16);
+        return Stopwatch.GetTimestamp();
     }
 
-    private (string LockKey, string StateKey, string InboxKey) GetKeys(string flowId)
+    private (RedisKey LockKey, RedisKey StateKey, RedisKey InboxKey) GetKeys(string flowId)
     {
+        if (_keyCache.TryGetValue(flowId, out var cached))
+        {
+            return cached;
+        }
+
         const char KeySeparator = ':';
-        return (
-            _keyStrategy.GetLockKey(flowId, KeySeparator),
-            _keyStrategy.GetStateKey(flowId, KeySeparator),
-            _keyStrategy.GetInboxKey(flowId, KeySeparator)
+        var keys = (
+            (RedisKey)_keyStrategy.GetLockKey(flowId, KeySeparator),
+            (RedisKey)_keyStrategy.GetStateKey(flowId, KeySeparator),
+            (RedisKey)_keyStrategy.GetInboxKey(flowId, KeySeparator)
         );
+
+        if (_keyCache.Count < 10000)
+        {
+            _keyCache.TryAdd(flowId, keys);
+        }
+
+        return keys;
     }
 
-    private async Task<RedisResult> AcquireLockAndLoadDataAsync(IDatabase db, string lockKey, string stateKey, string inboxKey, Memory<byte> fenceToken)
+    private async Task<RedisResult> AcquireLockAndLoadDataAsync(IDatabase db, RedisKey lockKey, RedisKey stateKey, RedisKey inboxKey, RedisValue fenceToken)
     {
         var ttl = (long)_options.Execution.LockTimeout.TotalMilliseconds;
         return await _acquireScript.ExecuteAsync(db,
-            keys: [lockKey, stateKey, inboxKey],
-            values: [fenceToken, ttl, _options.Orchestrator.MaxInboxBatchSize]
+            lockKey, stateKey, inboxKey,
+            fenceToken, ttl, _options.Orchestrator.MaxInboxBatchSize
         );
+    }
+
+    private async Task ReleaseLockAsync(IDatabase db, RedisKey lockKey, RedisValue fenceToken)
+    {
+        await _releaseScript.ExecuteAsync(db, lockKey, fenceToken);
     }
 
     private static (byte[]? StateBytes, RedisResult[]? InboxItems) UnpackLoadResult(RedisResult loadResult)
@@ -180,14 +212,14 @@ public class FlowExecutor : IFlowExecutor
         flow.DispatchSignal(impulse.ImpulseName, impulse.Payload);
     }
 
-    private async Task<bool> CommitFlowStateAsync(IDatabase db, IFlow flow, FlowMetadata meta, string lockKey, string stateKey, Memory<byte> fenceToken)
+    private async Task<bool> CommitFlowStateAsync(IDatabase db, IFlow flow, FlowMetadata meta, RedisKey lockKey, RedisKey stateKey, RedisValue fenceToken)
     {
         var newState = flow.GetState();
         var newStateBytes = CacheSerializer.Serialize(newState, meta.StateType, _options.Serialization.StateSerializer);
 
         var saveResult = await _saveScript.ExecuteAsync(db,
-            keys: [lockKey, stateKey],
-            values: [fenceToken, newStateBytes]
+            lockKey, stateKey,
+            fenceToken, newStateBytes
         );
 
         return (int)saveResult != 0;
@@ -200,5 +232,20 @@ public class FlowExecutor : IFlowExecutor
 
         context.Initialize(string.Empty, default);
         _contextPool.Return(context);
+    }
+
+    private static bool IsEnergized(FlowMetadata meta, byte[]? stateBytes, Impulse impulse)
+    {
+        if (stateBytes is not null && stateBytes.Length > 0)
+        {
+            return true;
+        }
+
+        if (meta.Mode != FlowMode.Circuit)
+        {
+            return true;
+        }
+
+        return meta.EnergizeImpulses.Contains(impulse.ImpulseName);
     }
 }
