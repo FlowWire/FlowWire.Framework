@@ -5,7 +5,7 @@ namespace FlowWire.Framework.Core.Logging;
 static internal partial class LogDefinitions
 {
     [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Flow {flowId} ({flowType}) completed tick in {duration}ms. Result: {result}")]
-    public static partial void LogFlowTick(this ILogger logger, string flowId, string flowType, double duration, string result);
+    public static partial void LogFlowTick(this ILogger logger, string flowId, string flowType, long duration, string result);
 
     [LoggerMessage(EventId = 1002, Level = LogLevel.Warning, Message = "Flow {flowId} failed to acquire lock. Retrying.")]
     public static partial void LogLockContention(this ILogger logger, string flowId);
