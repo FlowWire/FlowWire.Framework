@@ -21,6 +21,18 @@ static internal class LuaScripts
         end";
 
     /// <summary>
+    /// Releases the lock only if the lock is held by the requester.
+    /// KEYS[1]: Lock Key
+    /// ARGV[1]: Fencing Token
+    /// </summary>
+    public const string Release = @"
+        if redis.call('get', KEYS[1]) == ARGV[1] then
+            return redis.call('del', KEYS[1])
+        else
+            return 0
+        end";
+
+    /// <summary>
     /// Saves the result and releases the lock only if the lock is held by the requester.
     /// KEYS[1]: Lock Key
     /// KEYS[2]: State Key
