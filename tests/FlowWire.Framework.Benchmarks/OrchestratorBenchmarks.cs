@@ -29,7 +29,7 @@ public class OrchestratorBenchmarks
     private IImpulseQueue _queue = null!;
     private MockFlowExecutor _executor = null!;
     
-    //private OrchestratorBackgroundServiceNaive _naive = null!;
+    private OrchestratorBackgroundServiceNaive _naive = null!;
     private FlowWireOptions _naiveOptions = null!;
 
     private OrchestratorBackgroundService _pipelined = null!;
@@ -128,7 +128,7 @@ public class OrchestratorBenchmarks
         
         db.ListRightPushAsync(pendingKey, values).Wait();
     }
-    /*
+    
     [Benchmark(Baseline = true)]
     public async Task Naive()
     {
@@ -152,7 +152,7 @@ public class OrchestratorBenchmarks
         cts.Cancel();
         await _naive.StopAsync(CancellationToken.None);
     }
-    */
+    
 
     [Benchmark]
     public async Task Pipelined()
